@@ -12,6 +12,24 @@ const ListItem = ({items}) =>{
     <div >{items.map((item, i) =><li key={i}>{item.name} {item.number}</li>)}</div>
   )
 }
+const PersonForm = ({name, number, namehandler, phonehandler, addperson}) => {
+  return(
+        <form onSubmit={addperson}>
+        <div>name: <input value={name} onChange={namehandler}/></div>
+        <div>number: <input value={number} onChange={phonehandler}/></div>
+        <div>
+          <button type="submit">add</button>
+        </div>
+      </form>
+  )
+}
+const Filter = ({handleFilterChange, filterName}) => {
+  return(
+    <div>
+      Filter name with <input onChange={handleFilterChange} value={filterName}/>
+    </div>
+  )
+}
 const App = () => {
   const [persons, setPersons] = useState([
     { name: 'Arto Hellas', number: '040-123456' },
@@ -39,19 +57,20 @@ const App = () => {
   const handlePhoneChange = (event) => {
     setNewNumber(event.target.value)
   }
+  const handleFilterChange = (event) => {
+    setFilterName(event.target.value)
+  }
   return (
     <div>
       <h2>Phonebook</h2>
-      <div>
-        filter shown with <input onChange={event =>setFilterName(event.target.value)} value={filterName}/>
-      </div>
-      <form onSubmit={addPerson}>
-        <div>name: <input value={newName} onChange={handleNameChange}/></div>
-        <div>number: <input value={newNumber} onChange={handlePhoneChange}/></div>
-        <div>
-          <button type="submit">add</button>
-        </div>
-      </form>
+      <Filter handleFilterChange={handleFilterChange} filterName={filterName}/>
+      <PersonForm 
+      name={newName} 
+      number={newNumber} 
+      onSubmit={addPerson} 
+      namehandler={handleNameChange} 
+      phonehandler={handlePhoneChange}
+      addperson={addPerson}/>
       <h2>Numbers</h2>
         <PersonList list={persons.filter(person => person.name.includes(filterName))}/>
     </div>

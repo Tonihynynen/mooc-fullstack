@@ -1,19 +1,14 @@
 {
-  "notes": [
+  "persons": [
     {
-      "id": "9665",
-      "content": "HTML is fun",
-      "important": false
+      "id": "6968",
+      "name": "teppo testaaja",
+      "number": "112"
     },
     {
-      "id": "c050",
-      "content": "React is fun",
-      "important": false
-    },
-    {
-      "id": "bb47",
-      "content": "Halo",
-      "important": true
+      "id": "1772",
+      "name": "keijo kuosmanen",
+      "number": "911"
     }
   ]
 }

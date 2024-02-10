@@ -1,108 +1,136 @@
-import { useState, useEffect } from 'react'
-import Note from './components/Note'
+import { useEffect, useState } from 'react'
+import personService from './services/persons'
 import Notification from './components/Notification'
-import noteService from './services/notes'
-
-const Footer = () => {
-  const footerStyle = {
-    color: 'green',
-    fontStyle: 'italic',
-    fontSize: 16
-  }
-
-  return (
-    <div style={footerStyle}>
-      <br />
-      <em>Note app, Department of Computer Science, University of Helsinki 2023</em>
+const PersonList = ({list, delFunc}) =>{
+  return(
+    <ul>
+    <ListItem items={list} delFunc={delFunc}/>
+    </ul>
+  )
+}
+const ListItem = ({items, delFunc}) =>{
+  return(
+    <div >{items.map((item, i) =><li key={i}>{item.name} {item.number}<button onClick={() => delFunc(item)} >delete</button></li>)}</div>
+  )
+}
+const PersonForm = ({name, number, namehandler, phonehandler, addperson}) => {
+  return(
+        <form onSubmit={addperson}>
+        <div>name: <input value={name} onChange={namehandler}/></div>
+        <div>number: <input value={number} onChange={phonehandler}/></div>
+        <div>
+          <button type="submit">add</button>
+        </div>
+      </form>
+  )
+}
+const Filter = ({handleFilterChange, filterName}) => {
+  return(
+    <div>
+      Filter name with <input onChange={handleFilterChange} value={filterName}/>
     </div>
   )
 }
-
 const App = () => {
-  const [notes, setNotes] = useState([])
-  const [newNote, setNewNote] = useState('')
-  const [showAll, setShowAll] = useState(true)
+  const [persons, setPersons] = useState([])
+  const [newName, setNewName] = useState('')
+  const [newNumber, setNewNumber] = useState('')
+  const [filterName, setFilterName] = useState('')
   const [errorMessage, setErrorMessage] = useState(null)
+  const [errorStatus, setErrorStatus] = useState(false)
 
-  useEffect(() => {
-    noteService
-      .getAll()
-      .then(initialNotes => {
-        setNotes(initialNotes)
-      })
-  }, [])
-
-  const addNote = (event) => {
-    event.preventDefault()
-    const noteObject = {
-      content: newNote,
-      important: Math.random() > 0.5,
-    }
+  const hook = () => {
+    personService.getAll()
+    .then(response =>{
+      setPersons(response)
+    }).catch(error =>{
+      console.log("from the error",error)
+    })
+  }
   
-    noteService
-      .create(noteObject)
-        .then(returnedNote => {
-        setNotes(notes.concat(returnedNote))
-        setNewNote('')
+  useEffect(hook, [])
+  
+  const addPerson = (event) => {
+    event.preventDefault()
+    const personObject = {
+      name: newName,
+      number: newNumber
+    }
+    const filterPerson = persons.find(e => e.name === personObject.name)
+    console.log(filterPerson)
+    if (filterPerson !== undefined) {
+      const text = `${newName} is already added to phonebook, replace the old number with a new one?`
+      const confirm = window.confirm(text)
+      if(confirm === true){
+        personService.updatePerson(personObject,filterPerson.id)
+        .then(response => {
+          const copyPersons = [...persons]
+          const updateNumber = copyPersons.findIndex(x => x.id === filterPerson.id)
+          copyPersons[updateNumber] = response
+          setPersons(copyPersons)
+        })
+      }
+    }
+    else {
+      personService.addNew(personObject).then(response =>{
+        //console.log(`Added new person! ${personObject.name}`)
+        setPersons(persons.concat(response))
       })
+    }
+      setNewName('')
+      setNewNumber('')
+      const addedPersonDetails = `Added new person! ${personObject.name}`
+      setErrorMessage(addedPersonDetails)
+      setErrorStatus(false)
+      setTimeout(()=>{
+        setErrorMessage(null)
+        setErrorStatus(false)
+      }, 2000)
+  }
+  const deletePeson = (item) => {
+    const itemId = item.id
+    const confirm = window.confirm(`Delete ${item.name} ?`)
+    if (confirm === true){
+      personService.deletePerson(itemId).then(response => {
+        setPersons(persons.filter(p => p.id !== response.id ))
+      })
+    }
+    const deletedPerson = `Deleted person ${item.name}`
+    setErrorMessage(deletedPerson)
+    setErrorStatus(true)
+    setTimeout(()=>{
+      setErrorMessage(null)
+      setErrorStatus(false)
+    }, 2000)
+    setNewName('')
+    setNewNumber('')
   }
 
-  const toggleImportanceOf = id => {
-    const note = notes.find(n => n.id === id)
-    const changedNote = { ...note, important: !note.important }
-
-    noteService
-      .update(id, changedNote).then(returnedNote => {
-        setNotes(notes.map(note => note.id !== id ? note : returnedNote))
-      })
-      .catch(error => {
-
-        setErrorMessage(
-          `Note '${note.content}' was already removed from server`
-        )
-        setTimeout(() => {
-          setErrorMessage(null)
-        }, 5000)
-        setNotes(notes.filter(n => n.id !== id))
-      })
+  const handleNameChange = (event) => {
+    setNewName(event.target.value)
   }
-
-  const handleNoteChange = (event) => {
-    setNewNote(event.target.value)
+  const handlePhoneChange = (event) => {
+    setNewNumber(event.target.value)
   }
-
-  const notesToShow = showAll
-    ? notes
-    : notes.filter(note => note.important)
+  const handleFilterChange = (event) => {
+    setFilterName(event.target.value)
+  }
 
   return (
     <div>
-      <h1>Notes</h1>
-      <Notification message={errorMessage} />
-      <div>
-        <button onClick={() => setShowAll(!showAll)}>
-          show {showAll ? 'important' : 'all' }
-        </button>
-      </div>      
-      <ul>
-        {notesToShow.map(note => 
-          <Note
-            key={note.id}
-            note={note}
-            toggleImportance={() => toggleImportanceOf(note.id)}
-          />
-        )}
-      </ul>
-      <form onSubmit={addNote}>
-      <input
-          value={newNote}
-          onChange={handleNoteChange}
-        />
-        <button type="submit">save</button>
-      </form> 
-      <Footer/>
+      <h2>Phonebook</h2>
+      <Notification message={errorMessage} errorType={errorStatus}/>
+      <Filter handleFilterChange={handleFilterChange} filterName={filterName}/>
+      <PersonForm 
+      name={newName} 
+      number={newNumber} 
+      onSubmit={addPerson} 
+      namehandler={handleNameChange} 
+      phonehandler={handlePhoneChange}
+      addperson={addPerson}/>
+      <h2>Numbers</h2>
+        <PersonList list={persons.filter(person => person.name.includes(filterName))} delFunc={deletePeson}/>
     </div>
   )
 }
-
-export default App
+export default App 

@@ -68,12 +68,20 @@ const App = () => {
           const updateNumber = copyPersons.findIndex(x => x.id === filterPerson.id)
           copyPersons[updateNumber] = response
           setPersons(copyPersons)
+        }).catch(error =>{
+          const addedPersonDetails = `Information of ${personObject.name} has already been removed from server`
+          setErrorMessage(addedPersonDetails)
+          setErrorStatus(true)
+          setTimeout(()=>{
+            setErrorMessage(null)
+            setErrorStatus(false)
+          }, 2000)
+          return
         })
       }
     }
     else {
       personService.addNew(personObject).then(response =>{
-        //console.log(`Added new person! ${personObject.name}`)
         setPersons(persons.concat(response))
       })
     }

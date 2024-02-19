@@ -1,6 +1,6 @@
 const express = require('express')
 const app = express()
-
+const morgan = require('morgan')
 let persons = [
     {
       id: 1,
@@ -24,21 +24,25 @@ let persons = [
     }
   ]
 const requestLogger = (request, response, next) => {
+    console.log("Request logger:")
+    console.log("--->")
     console.log('Method:', request.method)
     console.log('Path:  ', request.path)
     console.log('Body:  ', request.body)
-    console.log('---')
+    console.log('<---')
     next()
 }
 app.use(express.json())
 app.use(requestLogger)
-
+morgan.token("body",(request) => JSON.stringify(request.body))
+//app.use(morgan(":method :url :status :res[content-length] - :response-time ms :body"))
+app.use(morgan("tiny"))
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.get("/", (request, response) => {
-  response.status(200).end()
+  response.status(200).send("<div>Hello world!</div>")
 })
 
 const generateId = () => {
@@ -72,7 +76,7 @@ app.delete('/api/persons/:id', (request, response) => {
     response.status(204).end()
 })
 
-app.post("/api/persons", (request, response)=>{
+app.post("/api/persons",morgan(":method :url :status :res[content-length] - :response-time ms :body"),(request, response)=>{
     const body = request.body
     const nameExist = persons.some(person => person.name === body.name)
     if (!body.name && !body.number) {

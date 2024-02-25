@@ -1,90 +1,144 @@
 import { useEffect, useState } from 'react'
-import CountryController from './services/countries'
-import axios from "axios";
-
-const ResultList = ({data, filter}) => {
-  if (data === null){
-    return null
-  }
-  const resultCount = data.length
-  if (resultCount < 11){
-    return (
-        <div>Too many matches, specify another filter</div>
-    )
-  }else{
-    return(
-        <ul>
-          <ListItem data={data} fil={filter}/>
-        </ul>
-    )
-  }
-}
-const ListItem = ({data, fil}) => {
-  const filterCountries = data.map(item => item.name.common);
-  const filterToUpper = fil.charAt(0).toUpperCase() + fil.slice(1)
-  if (fil === ""){
-    return null
-  }
-  const searchCountries = filterCountries.filter(country => country.startsWith(filterToUpper))
-  const resultCount = searchCountries.length
-  if (resultCount > 10){
-    return(
-      <div>Too many matches</div>
-    )
-  } else if ( resultCount === 1){
-    const indexFromData = data.map(item => item.name.common).indexOf(searchCountries[0])
-    const languages = Object.values(data[indexFromData].languages)
-    const flag = data[indexFromData].flags.png
-    console.log(data[indexFromData])
-    return(
-      <div>
-        <h1>{searchCountries}</h1>
-        <div>Capital: {data[indexFromData].capital}</div>
-        <div>Area: {data[indexFromData].area}</div>
-        <h3><b>Languages</b></h3>
-        <ul>
-          {languages.map((value) => <li key={value.id}>{value}</li>)}
-        </ul>
-        <img src={flag}/>
-      </div>
-    )
-  } else {
+import personService from './services/persons'
+import Notification from './components/Notification'
+const PersonList = ({list, delFunc}) =>{
   return(
-    <div>
-      {searchCountries.map(item => <li key={item.id}>{item}</li>)}
-    </div>
-  )}
+    <ul>
+    <ListItem items={list} delFunc={delFunc}/>
+    </ul>
+  )
 }
-
-const App = () => {
-  const [countries, setCountries] = useState(null)
-  const [countryFilter, setCountryFilter] = useState('')
-  const apiUrl = 'https://studies.cs.helsinki.fi/restcountries/api/all/'
-  
-  useEffect(()=> {
-    axios.get(apiUrl)
-    .then(response=> {
-      const countryData = response.data
-      setCountries(countryData)
-      console.log(countryData)
-  }).catch(error => {
-    console.log("Failed to fetch data", error)
-  })
-  },[])
-
-  const FormInputChange = (event) => {
-    const searchParameter = event.target.value
-    setCountryFilter(searchParameter)
-  }
+const ListItem = ({items, delFunc}) =>{
   return(
-    <div>
-      <form>
+    <div >{items.map((item, i) =><li key={i}>{item.name} {item.number}<button onClick={() => delFunc(item)} >delete</button></li>)}</div>
+  )
+}
+const PersonForm = ({name, number, namehandler, phonehandler, addperson}) => {
+  return(
+        <form onSubmit={addperson}>
+        <div>name: <input value={name} onChange={namehandler}/></div>
+        <div>number: <input value={number} onChange={phonehandler}/></div>
         <div>
-        find countries from API: <input value={countryFilter} onChange={FormInputChange}/>
+          <button type="submit">add</button>
         </div>
       </form>
-      <ResultList data={countries} filter={countryFilter}/>
+  )
+}
+const Filter = ({handleFilterChange, filterName}) => {
+  return(
+    <div>
+      Filter name with <input onChange={handleFilterChange} value={filterName}/>
     </div>
   )
 }
-export default App
+const App = () => {
+  const [persons, setPersons] = useState([])
+  const [newName, setNewName] = useState('')
+  const [newNumber, setNewNumber] = useState('')
+  const [filterName, setFilterName] = useState('')
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [errorStatus, setErrorStatus] = useState(false)
+
+  const hook = () => {
+    personService.getAll()
+    .then(response =>{
+      setPersons(response)
+    }).catch(error =>{
+      console.log("from the error",error)
+    })
+  }
+  
+  useEffect(hook, [])
+  
+  const addPerson = (event) => {
+    event.preventDefault()
+    const personObject = {
+      name: newName,
+      number: newNumber
+    }
+    const filterPerson = persons.find(e => e.name === personObject.name)
+    console.log(filterPerson)
+    if (filterPerson !== undefined) {
+      const text = `${newName} is already added to phonebook, replace the old number with a new one?`
+      const confirm = window.confirm(text)
+      if(confirm === true){
+        personService.updatePerson(personObject,filterPerson.id)
+        .then(response => {
+          const copyPersons = [...persons]
+          const updateNumber = copyPersons.findIndex(x => x.id === filterPerson.id)
+          copyPersons[updateNumber] = response
+          setPersons(copyPersons)
+        }).catch(error =>{
+          const addedPersonDetails = `Information of ${personObject.name} has already been removed from server`
+          setErrorMessage(addedPersonDetails)
+          setErrorStatus(true)
+          setTimeout(()=>{
+            setErrorMessage(null)
+            setErrorStatus(false)
+          }, 2000)
+          return
+        })
+      }
+    }
+    else {
+      personService.addNew(personObject).then(response =>{
+        setPersons(persons.concat(response))
+      })
+    }
+      setNewName('')
+      setNewNumber('')
+      const addedPersonDetails = `Added new person! ${personObject.name}`
+      setErrorMessage(addedPersonDetails)
+      setErrorStatus(false)
+      setTimeout(()=>{
+        setErrorMessage(null)
+        setErrorStatus(false)
+      }, 2000)
+  }
+  const deletePeson = (item) => {
+    const itemId = item.id
+    const confirm = window.confirm(`Delete ${item.name} ?`)
+    if (confirm === true){
+      personService.deletePerson(itemId).then(response => {
+        setPersons(response)
+      })
+    }
+    const deletedPerson = `Deleted person ${item.name}`
+    setErrorMessage(deletedPerson)
+    setErrorStatus(true)
+    setTimeout(()=>{
+      setErrorMessage(null)
+      setErrorStatus(false)
+    }, 2000)
+    setNewName('')
+    setNewNumber('')
+  }
+
+  const handleNameChange = (event) => {
+    setNewName(event.target.value)
+  }
+  const handlePhoneChange = (event) => {
+    setNewNumber(event.target.value)
+  }
+  const handleFilterChange = (event) => {
+    setFilterName(event.target.value)
+  }
+
+  return (
+    <div>
+      <h2>Phonebook</h2>
+      <Notification message={errorMessage} errorType={errorStatus}/>
+      <Filter handleFilterChange={handleFilterChange} filterName={filterName}/>
+      <PersonForm 
+      name={newName} 
+      number={newNumber} 
+      onSubmit={addPerson} 
+      namehandler={handleNameChange} 
+      phonehandler={handlePhoneChange}
+      addperson={addPerson}/>
+      <h2>Numbers</h2>
+        <PersonList list={persons.filter(person => person.name.includes(filterName))} delFunc={deletePeson}/>
+    </div>
+  )
+}
+export default App 

@@ -1,6 +1,7 @@
 const express = require('express')
 const app = express()
 const morgan = require('morgan')
+const cors = require('cors')
 let persons = [
     {
       id: 1,
@@ -33,9 +34,9 @@ const requestLogger = (request, response, next) => {
     next()
 }
 app.use(express.json())
+app.use(cors())
 app.use(requestLogger)
 morgan.token("body",(request) => JSON.stringify(request.body))
-//app.use(morgan(":method :url :status :res[content-length] - :response-time ms :body"))
 app.use(morgan("tiny"))
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
@@ -73,7 +74,7 @@ app.get('/api/persons/:id', (request, response) => {
 app.delete('/api/persons/:id', (request, response) => {
     const id = Number(request.params.id)
     persons = persons.filter(person => person.id !== id)
-    response.status(204).end()
+    response.status(200).json(persons)
 })
 
 app.post("/api/persons",morgan(":method :url :status :res[content-length] - :response-time ms :body"),(request, response)=>{
@@ -96,7 +97,7 @@ app.post("/api/persons",morgan(":method :url :status :res[content-length] - :res
 
 app.use(unknownEndpoint)
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001 
     app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })

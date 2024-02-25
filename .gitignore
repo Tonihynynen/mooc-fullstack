@@ -1,3 +1,4 @@
 node_modules
 .vite
 part2/db.json
+.env

@@ -25,7 +25,7 @@ if (process.argv.length === 3){
     Person.find({}).then(persons => {
         const personNames = persons.map(p => p.name)
         const personNumbers = persons.map(p => p.number)
-        persons.forEach((person) => console.log(`${person.name} ${person.number}`))
+        persons.forEach((person) => console.log(`${person.name} ${person.}`))
         mongoose.connection.close()
   })
 } else {

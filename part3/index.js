@@ -9,9 +9,15 @@ app.use(express.json())
 app.use(cors())
 app.use(express.static('dist'))
 
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: 'unknown endpoint' })
+const errorHandler = (error, request, response, next) => {
+  console.log(error.message)
+
+  if (error.name === "CastError"){
+    return response.status(400).send({error:"malformatted id"})
+  }
+  next(error)
 }
+app.use(errorHandler)
 
 app.get("/", (request, response) => {
   response.status(200).send("<div>Hello world!</div>")
@@ -26,14 +32,19 @@ app.get("/info", (request, response) => {
 app.get('/api/persons', (request, response) => {
   people.find({}).then(result => {
     response.status(200).json(result)
-  })
+  }).catch(error => next(error))
 })
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
   people.findById(id).then(result => {
-    response.status(200).json(result)
-  })
+    console.log(result)
+    if (result) {
+      response.status(200).json(result)
+    } else {
+      response.status(404).end()
+    }
+  }).catch(error => next(error))
 })
 
 app.delete('/api/persons/:id', (request, response) => {
@@ -56,8 +67,6 @@ app.post("/api/persons", (request, response) => {
       response.json(savedPerson)
     })
 })
-
-app.use(unknownEndpoint)
 
 const PORT = process.env.PORT || 3001 
     app.listen(PORT, () => {

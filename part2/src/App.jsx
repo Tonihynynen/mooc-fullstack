@@ -95,24 +95,31 @@ const App = () => {
         setErrorStatus(false)
       }, 2000)
   }
-  const deletePeson = (item) => {
-    const itemId = item.id
-    const confirm = window.confirm(`Delete ${item.name} ?`)
-    if (confirm === true){
-      personService.deletePerson(itemId).then(response => {
-        setPersons(response)
-      })
+  const deletePerson = async (item) => {
+    try {
+      const confirm = window.confirm(`Delete ${item.name} ?`);
+      if (!confirm) return;
+  
+      await personService.deletePerson(item.id);
+      setPersons((prevPersons) => prevPersons.filter((person) => person.id !== item.id));
+  
+      const deletedPersonMessage = `Deleted person ${item.name}`;
+      console.log(deletedPersonMessage);
+  
+      setErrorMessage(deletedPersonMessage);
+      setErrorStatus(true);
+  
+      setTimeout(() => {
+        setErrorMessage(null);
+        setErrorStatus(false);
+        setNewName('');
+        setNewNumber('');
+      }, 7000);
+    } catch (error) {
+      console.error('Error deleting person:', error);
     }
-    const deletedPerson = `Deleted person ${item.name}`
-    setErrorMessage(deletedPerson)
-    setErrorStatus(true)
-    setTimeout(()=>{
-      setErrorMessage(null)
-      setErrorStatus(false)
-    }, 2000)
-    setNewName('')
-    setNewNumber('')
-  }
+  };
+  
 
   const handleNameChange = (event) => {
     setNewName(event.target.value)
@@ -137,7 +144,7 @@ const App = () => {
       phonehandler={handlePhoneChange}
       addperson={addPerson}/>
       <h2>Numbers</h2>
-        <PersonList list={persons.filter(person => person.name.includes(filterName))} delFunc={deletePeson}/>
+        <PersonList list={persons.filter(person => person.name.includes(filterName))} delFunc={deletePerson}/>
     </div>
   )
 }

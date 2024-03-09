@@ -32,7 +32,15 @@ app.get('/api/persons', (request, response) => {
 app.get('/api/persons/:id', (request, response) => {
   const id = request.params.id
   people.findById(id).then(result => {
-    response.status(200).json(result)
+    console.log(result)
+    if (result) {
+      response.status(200).json(result)
+    } else {
+      response.status(404).end()
+    }
+  }).catch(error => {
+    console.log(error)
+    response.status(500).end()
   })
 })
 
